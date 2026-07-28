@@ -1,13 +1,17 @@
 from datetime import datetime
+from typing import List, Optional
+
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
-from typing import Optional, List
+
 from .post_schemas import PostResponse
+
 
 class UserCreate(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     about_me: Optional[str] = Field(None, max_length=500)
     email: EmailStr
     password: str = Field(..., min_length=8)
+
 
 class UserUpdate(BaseModel):
     username: Optional[str] = Field(None, min_length=3, max_length=50)
@@ -27,9 +31,9 @@ class UserResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-class UserDelete(BaseModel):
-    id : int
 
+class UserDelete(BaseModel):
+    id: int
 
 
 class Token(BaseModel):

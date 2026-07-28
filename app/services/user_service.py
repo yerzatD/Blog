@@ -1,11 +1,11 @@
-from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..auth import create_access_token, verify_password
 from ..models.User import User
 from ..repositories.user_repository import UserRepository
-from ..schemas.user_schemas import UserCreate, UserUpdate, UserResponse, Token
-from ..auth import verify_password, create_access_token
+from ..schemas.user_schemas import Token, UserCreate, UserResponse, UserUpdate
 
 
 class UserService:

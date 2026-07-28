@@ -1,8 +1,10 @@
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ..auth import hash_password
 from ..models.User import User
 from ..schemas.user_schemas import UserCreate, UserUpdate
-from ..auth import hash_password
+
 
 class UserRepository:
     def __init__(self, db: AsyncSession):
@@ -38,15 +40,15 @@ class UserRepository:
         await self.db.commit()
         await self.db.refresh(user)
         return user
-    
 
     async def get_all_users(self) -> list[User]:
         users = await self.db.execute(select(User))
         return users.scalars().all()
 
     async def get_user_by_id(self, user_id: int) -> User | None:
-        user = await self.db.execute(select(User).filter(User.id == user_id))
+        user = await self.db.execute(select(User).where(User.id == user_id))
         return user.scalar_one_or_none()
-    
-    
 
+    async def get_user_by_username(self, username: str) -> User | None:
+        user = await self.db.execute(select(User).where(User.username == username))
+        return user.scalar_one_or_none()
