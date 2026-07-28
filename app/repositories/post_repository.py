@@ -1,5 +1,5 @@
 from sqlalchemy import select
-
+from fastapi import HTTPException,status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.Post import Post
@@ -21,10 +21,12 @@ class PostRepository:
         await self.db.refresh(new_post)
         return new_post
 
-    async def update_post(self, post_id: int, post_update: PostUpdate) -> Post | None:
+    async def update_post(self,user_id: int, post_id: int, post_update: PostUpdate) -> Post | None:
         post = await self.db.get(Post, post_id)
         if post is None:
             return None
+        if post.owner_id != user_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="Wrong User")
 
         if post_update.title is not None:
             post.title = post_update.title
@@ -38,18 +40,25 @@ class PostRepository:
         await self.db.refresh(post)
         return post
 
-    async def get_post_by_id(self, post_id: int) -> Post | None:
+    async def get_post_by_id(self,post_id: int) -> Post | None:
         post = await self.db.get(Post, post_id)
         return post
+
+    async def get_user_all_posts(self,user_id : int) -> list[Post]:
+        posts = await self.db.execute(select(Post).where(Post.owner_id == user_id))
+        return posts.scalars().all()
 
     async def get_all_posts(self) -> list[Post]:
         posts = await self.db.execute(select(Post))
         return posts.scalars().all()
 
-    async def delete_post(self, post_id: int) -> bool:
+    async def delete_post(self,user_id : int, post_id: int) -> bool:
         post = await self.db.get(Post, post_id)
         if post is None:
             return False
+        if post.owner_id != user_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="Wrong User")
+            
 
         await self.db.delete(post)
         await self.db.commit()
