@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WIRE — FastAPI Shop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0c0d0f;
+    --panel:#15171b;
+    --panel-2:#1c1f24;
+    --line:#2a2d33;
+    --paper:#f2ede2;
+    --paper-dim:#c9c3b6;
+    --muted:#84888f;
+    --signal:#3e7bfa;
+    --signal-dim:#274a91;
+    --amber:#e8b339;
+    --danger:#e5595f;
+    --radius:3px;
+    --display: 'Fraunces', serif;
+    --body: 'IBM Plex Sans', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:var(--body);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  ::selection{background:var(--signal);color:#fff;}
+  a{color:inherit;}
+  button{font-family:var(--body);cursor:pointer;}
+  input,textarea,select{font-family:var(--body);}
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+
+  /* ---------- scrollbar ---------- */
+  ::-webkit-scrollbar{width:9px;}
+  ::-webkit-scrollbar-track{background:var(--ink);}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px;}
+
+  /* ---------- utility ---------- */
+  .mono{font-family:var(--mono);}
+  .hidden{display:none !important;}
+  .btn{
+    border:1px solid var(--line);
+    background:transparent;
+    color:var(--paper);
+    padding:9px 16px;
+    border-radius:var(--radius);
+    font-size:13px;
+    font-weight:500;
+    letter-spacing:.02em;
+    transition:border-color .15s ease, background .15s ease, color .15s ease;
+  }
+  .btn:hover{border-color:var(--paper-dim);}
+  .btn:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible{
+    outline:2px solid var(--signal); outline-offset:2px;
+  }
+  .btn-primary{
+    background:var(--signal);
+    border-color:var(--signal);
+    color:#fff;
+  }
+  .btn-primary:hover{background:#4d86ff;border-color:#4d86ff;}
+  .btn-primary:disabled{opacity:.45;cursor:not-allowed;}
+  .btn-danger{border-color:var(--danger);color:var(--danger);}
+  .btn-danger:hover{background:rgba(229,89,95,.12);}
+  .btn-ghost{border-color:transparent;color:var(--muted);}
+  .btn-ghost:hover{color:var(--paper);border-color:var(--line);}
+  .btn-sm{padding:6px 11px;font-size:12px;}
+
+  input[type=text],input[type=email],input[type=password],input[type=url],textarea{
+    width:100%;
+    background:var(--ink);
+    border:1px solid var(--line);
+    color:var(--paper);
+    padding:11px 13px;
+    border-radius:var(--radius);
+    font-size:14px;
+    transition:border-color .15s ease;
+  }
+  input::placeholder, textarea::placeholder{color:#585c63;}
+  input:focus, textarea:focus{border-color:var(--signal);outline:none;}
+  textarea{resize:vertical;min-height:88px;line-height:1.5;}
+  label{
+    display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;
+    color:var(--muted);text-transform:uppercase;margin-bottom:6px;
+  }
+  .field{margin-bottom:16px;}
+  .field-error{color:var(--danger);font-size:12px;margin-top:6px;font-family:var(--mono);}
+
+  /* ---------- top loading rule ---------- */
+  #topline{
+    position:fixed;top:0;left:0;height:2px;background:var(--signal);
+    width:0%;z-index:999;transition:width .3s ease, opacity .3s ease;opacity:0;
+  }
+  #topline.active{opacity:1;}
+
+  /* ---------- toast ---------- */
+  #toastWrap{
+    position:fixed;bottom:20px;right:20px;z-index:1000;
+    display:flex;flex-direction:column;gap:8px;max-width:340px;
+  }
+  .toast{
+    background:var(--panel-2);border:1px solid var(--line);border-left:3px solid var(--signal);
+    padding:12px 14px;border-radius:var(--radius);font-size:13px;line-height:1.45;
+    box-shadow:0 8px 24px rgba(0,0,0,.4);
+    animation:toastIn .25s ease;
+  }
+  .toast.err{border-left-color:var(--danger);}
+  .toast.ok{border-left-color:#4caf6f;}
+  @keyframes toastIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+  /* ================= AUTH SCREEN ================= */
+  #authScreen{
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    padding:24px;position:relative;overflow:hidden;
+  }
+  #authScreen::before{
+    content:"";position:absolute;inset:0;
+    background-image:
+      repeating-linear-gradient(180deg, transparent 0 39px, var(--line) 39px 40px);
+    opacity:.35;pointer-events:none;
+    mask-image:linear-gradient(180deg, transparent, #000 20%, #000 80%, transparent);
+  }
+  .auth-card{
+    position:relative;width:100%;max-width:400px;
+    background:var(--panel);border:1px solid var(--line);border-radius:6px;
+    padding:38px 34px 30px;
+  }
+  .auth-brand{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+  .auth-dot{width:8px;height:8px;border-radius:50%;background:var(--amber);flex:none;}
+  .auth-dot.on{background:#4caf6f;box-shadow:0 0 0 3px rgba(76,175,111,.15);}
+  .auth-dot.off{background:var(--danger);}
+  .auth-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;}
+  h1.auth-title{
+    font-family:var(--display);font-weight:600;font-size:32px;margin:6px 0 24px;letter-spacing:-.01em;
+  }
+  .tabbar{display:flex;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:24px;}
+  .tabbar button{
+    flex:1;background:transparent;border:none;color:var(--muted);padding:10px 0;
+    font-size:12.5px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;
+    transition:background .15s ease,color .15s ease;
+  }
+  .tabbar button.active{background:var(--signal);color:#fff;}
+  .tabbar button:not(.active):hover{color:var(--paper);}
+
+  .api-config{
+    margin-top:22px;padding-top:18px;border-top:1px dashed var(--line);
+  }
+  .api-config summary{
+    font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.06em;
+    text-transform:uppercase;cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;
+  }
+  .api-config summary::-webkit-details-marker{display:none;}
+  .api-config summary:before{content:"▸";display:inline-block;transition:transform .15s ease;}
+  .api-config[open] summary:before{transform:rotate(90deg);}
+  .api-config .field{margin-top:12px;margin-bottom:0;}
+
+  /* ================= APP SHELL ================= */
+  #app{display:none;min-height:100vh;grid-template-columns:232px 1fr;}
+  #app.show{display:grid;}
+  @media (max-width: 860px){
+    #app{grid-template-columns:1fr;}
+    #sidebar{position:fixed;z-index:80;top:0;left:0;height:100vh;transform:translateX(-100%);transition:transform .2s ease;}
+    #sidebar.open{transform:translateX(0);}
+    #sidebarScrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:70;}
+    #sidebarScrim.show{display:block;}
+  }
+
+  #sidebar{
+    background:var(--panel);border-right:1px solid var(--line);
+    padding:22px 18px;display:flex;flex-direction:column;
+  }
+  .brand{display:flex;align-items:center;gap:9px;margin-bottom:4px;padding:0 4px;}
+  .brand-name{font-family:var(--display);font-weight:600;font-size:19px;letter-spacing:-.01em;}
+  .brand-sub{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.12em;padding:0 4px 22px;text-transform:uppercase;}
+
+  nav.navlist{display:flex;flex-direction:column;gap:2px;margin-top:8px;}
+  nav.navlist button{
+    display:flex;align-items:center;gap:11px;background:transparent;border:none;color:var(--muted);
+    padding:10px 11px;border-radius:var(--radius);font-size:13.5px;text-align:left;font-weight:500;
+    transition:background .15s ease,color .15s ease;
+  }
+  nav.navlist button .ic{width:16px;text-align:center;font-family:var(--mono);color:inherit;opacity:.8;}
+  nav.navlist button:hover{background:var(--panel-2);color:var(--paper);}
+  nav.navlist button.active{background:var(--panel-2);color:var(--paper);}
+  nav.navlist button.active .ic{color:var(--signal);}
+
+  .sidebar-spacer{flex:1;}
+  .who{
+    border-top:1px solid var(--line);padding-top:14px;margin-top:10px;
+    display:flex;align-items:center;gap:10px;
+  }
+  .who-avatar{
+    width:34px;height:34px;border-radius:50%;background:var(--panel-2);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:600;
+    font-size:14px;color:var(--amber);flex:none;overflow:hidden;
+  }
+  .who-avatar img{width:100%;height:100%;object-fit:cover;}
+  .who-name{font-size:13px;font-weight:600;line-height:1.2;}
+  .who-name-sub{font-family:var(--mono);font-size:10.5px;color:var(--muted);}
+  .who-meta{min-width:0;flex:1;}
+  .who-meta .who-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .logout-btn{margin-top:10px;width:100%;}
+
+  #main{padding:26px 34px 60px;min-width:0;}
+  @media (max-width:640px){ #main{padding:18px 16px 60px;} }
+
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:26px;
+  }
+  .topbar-left{display:flex;align-items:center;gap:12px;min-width:0;}
+  .menu-btn{display:none;background:transparent;border:1px solid var(--line);color:var(--paper);border-radius:var(--radius);padding:7px 10px;font-size:15px;}
+  @media (max-width:860px){ .menu-btn{display:inline-flex;} }
+  h2.view-title{font-family:var(--display);font-size:26px;font-weight:600;letter-spacing:-.01em;margin:0;}
+  .view-sub{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:3px;letter-spacing:.03em;}
+
+  /* ---------- compose ---------- */
+  .compose{
+    background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:20px;margin-bottom:30px;
+  }
+  .compose-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .compose-head .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;}
+  .compose-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media (max-width:560px){.compose-grid{grid-template-columns:1fr;}}
+  .compose-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:6px;}
+
+  /* ---------- wire feed ---------- */
+  .feed{position:relative;padding-left:26px;}
+  .feed::before{
+    content:"";position:absolute;left:6px;top:6px;bottom:6px;width:1px;background:var(--line);
+  }
+  .dispatch{position:relative;padding-bottom:26px;}
+  .dispatch::before{
+    content:"";position:absolute;left:-26px;top:6px;width:9px;height:9px;border-radius:50%;
+    background:var(--ink);border:2px solid var(--signal);
+  }
+  .dispatch-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:18px 20px;
+    transition:border-color .15s ease;
+  }
+  .dispatch-card:hover{border-color:#3a3d44;}
+  .dispatch-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:9px;flex-wrap:wrap;}
+  .dispatch-id{font-family:var(--mono);font-size:11px;color:var(--amber);letter-spacing:.04em;}
+  .dispatch-meta{font-family:var(--mono);font-size:11px;color:var(--muted);}
+  .dispatch-author{font-weight:600;color:var(--paper-dim);}
+  .dispatch-title{font-family:var(--display);font-size:19px;font-weight:600;margin:0 0 8px;letter-spacing:-.005em;}
+  .dispatch-body{font-size:14.5px;line-height:1.6;color:#d8d3c8;white-space:pre-wrap;word-break:break-word;}
+  .dispatch-img{margin-top:12px;max-width:100%;border-radius:4px;border:1px solid var(--line);display:block;}
+  .dispatch-foot{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);}
+  .dispatch-time{font-family:var(--mono);font-size:11px;color:var(--muted);}
+  .dispatch-actions{display:flex;gap:8px;}
+
+  .empty{
+    padding:50px 20px;text-align:center;border:1px dashed var(--line);border-radius:6px;color:var(--muted);
+  }
+  .empty .em-title{font-family:var(--display);font-size:18px;color:var(--paper-dim);margin-bottom:6px;}
+  .empty .em-sub{font-family:var(--mono);font-size:12px;}
+
+  .skeleton{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:18px 20px;margin-bottom:26px;margin-left:26px;overflow:hidden;position:relative;}
+  .skeleton .sk-line{height:11px;background:var(--panel-2);border-radius:3px;margin-bottom:10px;width:60%;}
+  .skeleton .sk-line.w2{width:90%;}
+  .skeleton::after{
+    content:"";position:absolute;inset:0;
+    background:linear-gradient(90deg, transparent, rgba(255,255,255,.03), transparent);
+    animation:shimmer 1.3s infinite;
+  }
+  @keyframes shimmer{from{transform:translateX(-100%);}to{transform:translateX(100%);}}
+
+  /* ---------- operators (users) ---------- */
+  .op-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;}
+  .op-card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;}
+  .op-head{display:flex;align-items:center;gap:11px;margin-bottom:10px;}
+  .op-avatar{width:40px;height:40px;border-radius:50%;background:var(--panel-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:600;color:var(--amber);flex:none;overflow:hidden;}
+  .op-avatar img{width:100%;height:100%;object-fit:cover;}
+  .op-name{font-weight:600;font-size:14px;}
+  .op-id{font-family:var(--mono);font-size:10.5px;color:var(--muted);}
+  .op-bio{font-size:12.5px;color:var(--paper-dim);line-height:1.5;min-height:18px;}
+  .op-since{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:10px;}
+
+  /* ---------- profile ---------- */
+  .profile-grid{display:grid;grid-template-columns:260px 1fr;gap:22px;}
+  @media (max-width:760px){.profile-grid{grid-template-columns:1fr;}}
+  .profile-card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:24px;text-align:center;height:fit-content;}
+  .profile-avatar{width:84px;height:84px;border-radius:50%;margin:0 auto 14px;background:var(--panel-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:30px;font-weight:600;color:var(--amber);overflow:hidden;}
+  .profile-avatar img{width:100%;height:100%;object-fit:cover;}
+  .profile-uname{font-family:var(--display);font-size:20px;font-weight:600;}
+  .profile-email{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:4px;}
+  .profile-stat{display:flex;justify-content:center;gap:22px;margin-top:16px;padding-top:16px;border-top:1px solid var(--line);}
+  .profile-stat div{text-align:center;}
+  .profile-stat b{display:block;font-family:var(--display);font-size:18px;}
+  .profile-stat span{font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+  .panel-box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:22px;margin-bottom:18px;}
+  .panel-box h3{font-family:var(--display);font-size:16px;font-weight:600;margin:0 0 16px;}
+  .hint{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:-8px;margin-bottom:16px;}
+
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media (max-width:520px){.row2{grid-template-columns:1fr;}}
+
+  /* ---------- modal (edit post) ---------- */
+  #modalScrim{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:200;padding:20px;}
+  #modalScrim.show{display:flex;}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:24px;max-width:480px;width:100%;}
+  .modal h3{font-family:var(--display);font-size:19px;margin:0 0 16px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+
+  footer.foot{margin-top:40px;font-family:var(--mono);font-size:10.5px;color:var(--muted);text-align:center;letter-spacing:.04em;}
+</style>
+</head>
+<body>
+
+<div id="topline"></div>
+<div id="toastWrap"></div>
+
+<!-- ============ AUTH SCREEN ============ -->
+<section id="authScreen">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <span class="auth-dot off" id="connDot"></span>
+      <span class="auth-eyebrow" id="connLabel">проверка соединения…</span>
+    </div>
+    <h1 class="auth-title">WIRE</h1>
+
+    <div class="tabbar">
+      <button id="tabLogin" class="active" type="button">Вход</button>
+      <button id="tabRegister" type="button">Регистрация</button>
+    </div>
+
+    <form id="loginForm">
+      <div class="field">
+        <label for="li_username">Имя пользователя</label>
+        <input type="text" id="li_username" autocomplete="username" required />
+      </div>
+      <div class="field">
+        <label for="li_password">Пароль</label>
+        <input type="password" id="li_password" autocomplete="current-password" required />
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;" id="loginBtn">Войти в эфир</button>
+    </form>
+
+    <form id="registerForm" class="hidden">
+      <div class="field">
+        <label for="re_username">Имя пользователя</label>
+        <input type="text" id="re_username" minlength="3" maxlength="50" required />
+      </div>
+      <div class="field">
+        <label for="re_email">Email</label>
+        <input type="email" id="re_email" required />
+      </div>
+      <div class="field">
+        <label for="re_password">Пароль</label>
+        <input type="password" id="re_password" minlength="8" required />
+        <div class="hint" style="margin-top:6px;margin-bottom:0;">минимум 8 символов</div>
+      </div>
+      <div class="field">
+        <label for="re_about">О себе (необязательно)</label>
+        <textarea id="re_about" maxlength="500" style="min-height:60px;"></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;" id="registerBtn">Создать аккаунт</button>
+    </form>
+
+    <details class="api-config" id="apiDetails">
+      <summary>Адрес сервера API</summary>
+      <div class="field">
+        <input type="text" id="apiBaseInput" value="http://127.0.0.1:8000" spellcheck="false" />
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ APP SHELL ============ -->
+<div id="app">
+  <div id="sidebarScrim"></div>
+  <aside id="sidebar">
+    <div class="brand">
+      <span class="auth-dot" id="brandDot"></span>
+      <span class="brand-name">WIRE</span>
+    </div>
+    <div class="brand-sub" id="brandSub">FastAPI Shop</div>
+
+    <nav class="navlist">
+      <button data-view="feed" class="active" type="button"><span class="ic">◧</span> Лента</button>
+      <button data-view="mine" type="button"><span class="ic">◨</span> Мои депеши</button>
+      <button data-view="ops" type="button"><span class="ic">◎</span> Операторы</button>
+      <button data-view="profile" type="button"><span class="ic">◑</span> Профиль</button>
+    </nav>
+
+    <div class="sidebar-spacer"></div>
+
+    <div class="who">
+      <div class="who-avatar" id="sideAvatar">?</div>
+      <div class="who-meta">
+        <div class="who-name" id="sideName">—</div>
+        <div class="who-name-sub" id="sideId">#—</div>
+      </div>
+    </div>
+    <button class="btn btn-ghost logout-btn" id="logoutBtn" type="button">Выйти</button>
+  </aside>
+
+  <main id="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Меню">☰</button>
+        <div>
+          <h2 class="view-title" id="viewTitle">Лента</h2>
+          <div class="view-sub" id="viewSub">все депеши сети, по порядку поступления</div>
+        </div>
+      </div>
+      <button class="btn btn-sm" id="refreshBtn" type="button">Обновить</button>
+    </div>
+
+    <div id="viewRoot"></div>
+
+    <footer class="foot">WIRE / FASTAPI SHOP — САМОДЕЛЬНЫЙ КЛИЕНТ · ТОКЕН ХРАНИТСЯ ТОЛЬКО В ПАМЯТИ ВКЛАДКИ</footer>
+  </main>
+</div>
+
+<!-- ============ EDIT POST MODAL ============ -->
+<div id="modalScrim">
+  <div class="modal">
+    <h3>Редактировать депешу</h3>
+    <form id="editForm">
+      <input type="hidden" id="edit_id" />
+      <div class="field">
+        <label for="edit_title">Заголовок</label>
+        <input type="text" id="edit_title" minlength="3" maxlength="100" required />
+      </div>
+      <div class="field">
+        <label for="edit_content">Текст</label>
+        <textarea id="edit_content" minlength="10" required></textarea>
+      </div>
+      <div class="field">
+        <label for="edit_image">Ссылка на изображение (необязательно)</label>
+        <input type="text" id="edit_image" maxlength="200" placeholder="static/images/…" />
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="editCancel">Отмена</button>
+        <button type="submit" class="btn btn-primary" id="editSave">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ===================== STATE ===================== */
+  const state = {
+    apiBase: "http://127.0.0.1:8000",
+    token: null,
+    me: null,           // current UserResponse
+    usersById: {},       // cache id -> UserResponse (for author names)
+    view: "feed",
+  };
+
+  /* ===================== HELPERS ===================== */
+  const $ = (sel, root) => (root||document).querySelector(sel);
+  const $$ = (sel, root) => Array.from((root||document).querySelectorAll(sel));
+
+  function esc(str){
+    if (str === null || str === undefined) return "";
+    return String(str)
+      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;").replaceAll("'","&#39;");
+  }
+
+  function initials(name){
+    if(!name) return "?";
+    return name.trim().slice(0,2).toUpperCase();
+  }
+
+  function fmtTime(iso){
+    if(!iso) return "—";
+    try{
+      const d = new Date(iso.endsWith("Z")||iso.includes("+") ? iso : iso + "Z");
+      const pad = n => String(n).padStart(2,"0");
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }catch(e){ return iso; }
+  }
+
+  function resolveImg(path){
+    if(!path) return null;
+    if(/^https?:\/\//i.test(path)) return path;
+    const base = state.apiBase.replace(/\/$/,"");
+    const p = path.startsWith("/") ? path : "/" + path;
+    // static assets are served at /static, but stored paths may already include it
+    if(p.startsWith("/static/")) return base + p;
+    return base + "/static/" + p.replace(/^\/+/, "");
+  }
+
+  let topTimer = null;
+  function loadingStart(){
+    const el = $("#topline");
+    clearTimeout(topTimer);
+    el.classList.add("active");
+    el.style.width = "70%";
+  }
+  function loadingEnd(){
+    const el = $("#topline");
+    el.style.width = "100%";
+    topTimer = setTimeout(()=>{ el.classList.remove("active"); el.style.width="0%"; }, 300);
+  }
+
+  function toast(msg, type){
+    const wrap = $("#toastWrap");
+    const t = document.createElement("div");
+    t.className = "toast" + (type ? " " + type : "");
+    t.textContent = msg;
+    wrap.appendChild(t);
+    setTimeout(()=>{ t.style.transition="opacity .3s ease"; t.style.opacity="0"; setTimeout(()=>t.remove(),300); }, 4200);
+  }
+
+  /* ===================== API LAYER ===================== */
+  async function api(path, {method="GET", body=null, form=false, auth=true, base=null} = {}){
+    const url = (base || state.apiBase).replace(/\/$/,"") + path;
+    const headers = {};
+    if(auth && state.token) headers["Authorization"] = "Bearer " + state.token;
+    let payload = undefined;
+    if(body !== null){
+      if(form){
+        payload = new URLSearchParams(body).toString();
+        headers["Content-Type"] = "application/x-www-form-urlencoded";
+      }else{
+        payload = JSON.stringify(body);
+        headers["Content-Type"] = "application/json";
+      }
+    }
+    loadingStart();
+    let res;
+    try{
+      res = await fetch(url, { method, headers, body: payload });
+    }catch(networkErr){
+      loadingEnd();
+      throw new Error("Нет связи с сервером API (" + state.apiBase + "). Проверьте адрес и что бэкенд запущен.");
+    }
+    loadingEnd();
+
+    if(res.status === 401){
+      if(auth && state.token){
+        toast("Сессия истекла, войдите снова", "err");
+        doLogout();
+      }
+      let msg = "Требуется авторизация";
+      try{ const j = await res.json(); msg = j.detail || msg; }catch(e){}
+      throw new Error(msg);
+    }
+
+    if(!res.ok){
+      let msg = `Ошибка ${res.status}`;
+      try{
+        const j = await res.json();
+        if(j && j.detail){
+          msg = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail);
+        }
+      }catch(e){}
+      throw new Error(msg);
+    }
+
+    if(res.status === 204) return null;
+    const text = await res.text();
+    if(!text) return null;
+    try{ return JSON.parse(text); }catch(e){ return text; }
+  }
+
+  async function pingApi(){
+    try{
+      await fetch(state.apiBase.replace(/\/$/,"") + "/api/users/all", {method:"GET"});
+      setConn(true);
+    }catch(e){
+      setConn(false);
+    }
+  }
+
+  function setConn(ok){
+    const dot = $("#connDot"), label = $("#connLabel");
+    const bdot = $("#brandDot"), bsub = $("#brandSub");
+    if(ok){
+      dot.className = "auth-dot on";
+      label.textContent = "сервер на связи · " + state.apiBase.replace(/^https?:\/\//,"");
+      bdot.className = "auth-dot on";
+    }else{
+      dot.className = "auth-dot off";
+      label.textContent = "нет связи с " + state.apiBase.replace(/^https?:\/\//,"");
+      bdot.className = "auth-dot off";
+    }
+    bsub.textContent = "FastAPI Shop";
+  }
+
+  /* ===================== AUTH FLOWS ===================== */
+  function setBusy(btn, busy, labelBusy, labelIdle){
+    btn.disabled = busy;
+    btn.textContent = busy ? labelBusy : labelIdle;
+  }
+
+  $("#tabLogin").addEventListener("click", ()=>{
+    $("#tabLogin").classList.add("active"); $("#tabRegister").classList.remove("active");
+    $("#loginForm").classList.remove("hidden"); $("#registerForm").classList.add("hidden");
+  });
+  $("#tabRegister").addEventListener("click", ()=>{
+    $("#tabRegister").classList.add("active"); $("#tabLogin").classList.remove("active");
+    $("#registerForm").classList.remove("hidden"); $("#loginForm").classList.add("hidden");
+  });
+
+  $("#apiBaseInput").addEventListener("change", (e)=>{
+    let v = e.target.value.trim().replace(/\/$/,"");
+    if(v) { state.apiBase = v; pingApi(); }
+  });
+
+  $("#loginForm").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    const btn = $("#loginBtn");
+    const username = $("#li_username").value.trim();
+    const password = $("#li_password").value;
+    setBusy(btn, true, "Соединение…", "Войти в эфир");
+    try{
+      const token = await api("/api/users/token", { method:"POST", form:true, auth:false,
+        body: { username, password } });
+      state.token = token.access_token;
+      await loadMe();
+      enterApp();
+    }catch(err){
+      toast(err.message || "Не удалось войти", "err");
+    }finally{
+      setBusy(btn, false, "Соединение…", "Войти в эфир");
+    }
+  });
+
+  $("#registerForm").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    const btn = $("#registerBtn");
+    const username = $("#re_username").value.trim();
+    const email = $("#re_email").value.trim();
+    const password = $("#re_password").value;
+    const about_me = $("#re_about").value.trim() || null;
+    setBusy(btn, true, "Создание…", "Создать аккаунт");
+    try{
+      await api("/api/users/register", { method:"POST", auth:false,
+        body: { username, email, password, about_me } });
+      toast("Аккаунт создан. Теперь войдите.", "ok");
+      $("#tabLogin").click();
+      $("#li_username").value = username;
+      $("#li_password").focus();
+    }catch(err){
+      toast(err.message || "Не удалось зарегистрироваться", "err");
+    }finally{
+      setBusy(btn, false, "Создание…", "Создать аккаунт");
+    }
+  });
+
+  async function loadMe(){
+    const me = await api("/api/users/info");
+    state.me = me;
+    state.usersById[me.id] = me;
+  }
+
+  function doLogout(){
+    state.token = null;
+    state.me = null;
+    $("#app").classList.remove("show");
+    $("#authScreen").style.display = "flex";
+    $("#li_password").value = "";
+  }
+  $("#logoutBtn").addEventListener("click", doLogout);
+
+  function enterApp(){
+    $("#authScreen").style.display = "none";
+    $("#app").classList.add("show");
+    renderWho();
+    setView("feed");
+  }
+
+  function renderWho(){
+    if(!state.me) return;
+    $("#sideAvatar").innerHTML = state.me.avatar
+      ? `<img src="${esc(resolveImg(state.me.avatar))}" alt="" onerror="this.parentElement.textContent=initialsSafe();" />`
+      : initials(state.me.username);
+    $("#sideName").textContent = state.me.username;
+    $("#sideId").textContent = "#" + state.me.id;
+  }
+  window.initialsSafe = ()=> initials(state.me ? state.me.username : "?");
+
+  /* ===================== NAV / VIEWS ===================== */
+  const viewMeta = {
+    feed:    { title:"Лента", sub:"все депеши сети, по порядку поступления" },
+    mine:    { title:"Мои депеши", sub:"опубликованные вами записи" },
+    ops:     { title:"Операторы", sub:"все зарегистрированные пользователи сети" },
+    profile: { title:"Профиль", sub:"учётные данные и настройки" },
+  };
+
+  $$(".navlist button").forEach(btn=>{
+    btn.addEventListener("click", ()=> setView(btn.dataset.view));
+  });
+  $("#refreshBtn").addEventListener("click", ()=> setView(state.view, true));
+  $("#menuBtn").addEventListener("click", ()=>{
+    $("#sidebar").classList.add("open"); $("#sidebarScrim").classList.add("show");
+  });
+  $("#sidebarScrim").addEventListener("click", ()=>{
+    $("#sidebar").classList.remove("open"); $("#sidebarScrim").classList.remove("show");
+  });
+
+  function setView(name, force){
+    if(state.view === name && !force){ /* still allow refresh */ }
+    state.view = name;
+    $$(".navlist button").forEach(b=> b.classList.toggle("active", b.dataset.view===name));
+    $("#viewTitle").textContent = viewMeta[name].title;
+    $("#viewSub").textContent = viewMeta[name].sub;
+    $("#sidebar").classList.remove("open"); $("#sidebarScrim").classList.remove("show");
+    const root = $("#viewRoot");
+    root.innerHTML = skeletonHtml(name==="ops"?3:2);
+    const renderers = { feed: renderFeed, mine: renderMine, ops: renderOps, profile: renderProfile };
+    renderers[name]().catch(err=>{
+      root.innerHTML = `<div class="empty"><div class="em-title">Не удалось загрузить</div><div class="em-sub">${esc(err.message)}</div></div>`;
+    });
+  }
+
+  function skeletonHtml(n){
+    let out = "";
+    for(let i=0;i<n;i++){
+      out += `<div class="skeleton"><div class="sk-line w2"></div><div class="sk-line"></div><div class="sk-line" style="width:40%"></div></div>`;
+    }
+    return out;
+  }
+
+  async function ensureUsersLoaded(){
+    if(Object.keys(state.usersById).length > 1) return;
+    try{
+      const users = await api("/api/users/all");
+      users.forEach(u => state.usersById[u.id] = u);
+    }catch(e){ /* non-fatal */ }
+  }
+
+  function authorLabel(ownerId){
+    const u = state.usersById[ownerId];
+    if(u) return u.username;
+    if(state.me && state.me.id === ownerId) return state.me.username;
+    return "оператор #" + ownerId;
+  }
+
+  /* ---------- FEED ---------- */
+  async function renderFeed(){
+    await ensureUsersLoaded();
+    const posts = await api("/api/posts/posts");
+    const root = $("#viewRoot");
+    posts.sort((a,b)=> b.id - a.id);
+
+    const composeHtml = `
+      <div class="compose">
+        <div class="compose-head"><span class="eyebrow">Новая депеша</span></div>
+        <form id="composeForm">
+          <div class="field">
+            <label for="cp_title">Заголовок</label>
+            <input type="text" id="cp_title" minlength="3" maxlength="100" required placeholder="О чём сообщение…" />
+          </div>
+          <div class="field">
+            <label for="cp_content">Текст</label>
+            <textarea id="cp_content" minlength="10" required placeholder="Подробности…"></textarea>
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label for="cp_image">Ссылка на изображение (необязательно)</label>
+            <input type="text" id="cp_image" maxlength="200" placeholder="static/images/…" />
+          </div>
+          <div class="compose-actions">
+            <button type="submit" class="btn btn-primary" id="cp_submit">Отправить в эфир</button>
+          </div>
+        </form>
+      </div>
+      <div id="feedList"></div>
+    `;
+    root.innerHTML = composeHtml;
+
+    $("#composeForm").addEventListener("submit", async (e)=>{
+      e.preventDefault();
+      const btn = $("#cp_submit");
+      setBusy(btn, true, "Отправка…", "Отправить в эфир");
+      try{
+        const title = $("#cp_title").value.trim();
+        const content = $("#cp_content").value.trim();
+        const post_image = $("#cp_image").value.trim() || null;
+        await api("/api/posts/", { method:"POST", body:{ title, content, post_image } });
+        toast("Депеша отправлена", "ok");
+        setView("feed", true);
+      }catch(err){
+        toast(err.message || "Не удалось отправить", "err");
+        setBusy(btn, false, "Отправка…", "Отправить в эфир");
+      }
+    });
+
+    renderDispatchList($("#feedList"), posts, {emptyTitle:"В сети пока тихо", emptySub:"будьте первым, кто отправит депешу"});
+  }
+
+  /* ---------- MY POSTS ---------- */
+  async function renderMine(){
+    await ensureUsersLoaded();
+    const posts = await api("/api/posts/user/posts");
+    posts.sort((a,b)=> b.id - a.id);
+    const root = $("#viewRoot");
+    root.innerHTML = `<div id="feedList"></div>`;
+    renderDispatchList($("#feedList"), posts, {emptyTitle:"Вы ещё не публиковали депеш", emptySub:"загляните в «Ленту», чтобы отправить первую"});
+  }
+
+  function renderDispatchList(container, posts, empty){
+    if(!posts.length){
+      container.innerHTML = `<div class="empty"><div class="em-title">${esc(empty.emptyTitle)}</div><div class="em-sub">${esc(empty.emptySub)}</div></div>`;
+      return;
+    }
+    const wrap = document.createElement("div");
+    wrap.className = "feed";
+    posts.forEach(p=>{
+      const mine = state.me && p.owner_id === state.me.id;
+      const el = document.createElement("article");
+      el.className = "dispatch";
+      const img = p.post_image && p.post_image !== "default_post_image.png"
+        ? `<img class="dispatch-img" src="${esc(resolveImg(p.post_image))}" alt="" onerror="this.remove()" />`
+        : "";
+      el.innerHTML = `
+        <div class="dispatch-card">
+          <div class="dispatch-top">
+            <span class="dispatch-id mono">ДЕПЕША №${p.id}</span>
+            <span class="dispatch-meta mono">от <span class="dispatch-author">${esc(authorLabel(p.owner_id))}</span></span>
+          </div>
+          <h3 class="dispatch-title">${esc(p.title)}</h3>
+          <div class="dispatch-body">${esc(p.content)}</div>
+          ${img}
+          <div class="dispatch-foot">
+            <span class="dispatch-time mono">${esc(fmtTime(p.created_at))}${p.updated_at && p.updated_at!==p.created_at ? " · изменено " + esc(fmtTime(p.updated_at)) : ""}</span>
+            ${mine ? `<div class="dispatch-actions">
+              <button class="btn btn-sm btn-ghost" data-act="edit" data-id="${p.id}">Изменить</button>
+              <button class="btn btn-sm btn-danger" data-act="del" data-id="${p.id}">Удалить</button>
+            </div>` : ""}
+          </div>
+        </div>
+      `;
+      wrap.appendChild(el);
+    });
+    container.innerHTML = "";
+    container.appendChild(wrap);
+
+    container.addEventListener("click", async (e)=>{
+      const btn = e.target.closest("button[data-act]");
+      if(!btn) return;
+      const id = Number(btn.dataset.id);
+      const post = posts.find(p=>p.id===id);
+      if(btn.dataset.act === "edit"){
+        openEditModal(post);
+      }else if(btn.dataset.act === "del"){
+        if(!confirm(`Удалить депешу №${id}? Это необратимо.`)) return;
+        try{
+          await api(`/api/posts/delete/${id}`, { method:"DELETE" });
+          toast("Депеша удалена", "ok");
+          setView(state.view, true);
+        }catch(err){
+          toast(err.message || "Не удалось удалить", "err");
+        }
+      }
+    }, { once:true });
+  }
+
+  /* ---------- EDIT MODAL ---------- */
+  function openEditModal(post){
+    $("#edit_id").value = post.id;
+    $("#edit_title").value = post.title;
+    $("#edit_content").value = post.content;
+    $("#edit_image").value = (post.post_image && post.post_image !== "default_post_image.png") ? post.post_image : "";
+    $("#modalScrim").classList.add("show");
+    $("#edit_title").focus();
+  }
+  function closeEditModal(){ $("#modalScrim").classList.remove("show"); }
+  $("#editCancel").addEventListener("click", closeEditModal);
+  $("#modalScrim").addEventListener("click", (e)=>{ if(e.target.id === "modalScrim") closeEditModal(); });
+  document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") closeEditModal(); });
+
+  $("#editForm").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    const btn = $("#editSave");
+    const id = $("#edit_id").value;
+    setBusy(btn, true, "Сохранение…", "Сохранить");
+    try{
+      await api(`/api/posts/update/${id}`, { method:"PATCH", body:{
+        title: $("#edit_title").value.trim(),
+        content: $("#edit_content").value.trim(),
+        post_image: $("#edit_image").value.trim() || null,
+      }});
+      toast("Депеша обновлена", "ok");
+      closeEditModal();
+      setView(state.view, true);
+    }catch(err){
+      toast(err.message || "Не удалось сохранить", "err");
+    }finally{
+      setBusy(btn, false, "Сохранение…", "Сохранить");
+    }
+  });
+
+  /* ---------- OPERATORS (all users) ---------- */
+  async function renderOps(){
+    const users = await api("/api/users/all");
+    users.forEach(u => state.usersById[u.id] = u);
+    users.sort((a,b)=> a.id - b.id);
+    const root = $("#viewRoot");
+    if(!users.length){
+      root.innerHTML = `<div class="empty"><div class="em-title">Операторов пока нет</div></div>`;
+      return;
+    }
+    const grid = document.createElement("div");
+    grid.className = "op-grid";
+    users.forEach(u=>{
+      const card = document.createElement("div");
+      card.className = "op-card";
+      const avatarHtml = u.avatar
+        ? `<img src="${esc(resolveImg(u.avatar))}" alt="" onerror="this.parentElement.textContent='${esc(initials(u.username))}'" />`
+        : esc(initials(u.username));
+      card.innerHTML = `
+        <div class="op-head">
+          <div class="op-avatar">${avatarHtml}</div>
+          <div>
+            <div class="op-name">${esc(u.username)}${state.me && u.id===state.me.id ? " (вы)" : ""}</div>
+            <div class="op-id mono">#${u.id} · ${(u.posts||[]).length} записей</div>
+          </div>
+        </div>
+        <div class="op-bio">${u.about_me ? esc(u.about_me) : "<span style=\"color:var(--muted)\">без описания</span>"}</div>
+        <div class="op-since mono">В сети с ${esc(fmtTime(u.created_at))}</div>
+      `;
+      grid.appendChild(card);
+    });
+    root.innerHTML = "";
+    root.appendChild(grid);
+  }
+
+  /* ---------- PROFILE ---------- */
+  async function renderProfile(){
+    const me = await api("/api/users/info");
+    state.me = me;
+    state.usersById[me.id] = me;
+    renderWho();
+
+    const root = $("#viewRoot");
+    const avatarHtml = me.avatar
+      ? `<img src="${esc(resolveImg(me.avatar))}" alt="" onerror="this.parentElement.textContent='${esc(initials(me.username))}'" />`
+      : esc(initials(me.username));
+
+    root.innerHTML = `
+      <div class="profile-grid">
+        <div class="profile-card">
+          <div class="profile-avatar">${avatarHtml}</div>
+          <div class="profile-uname">${esc(me.username)}</div>
+          <div class="profile-email mono">${esc(me.email)}</div>
+          <div class="profile-stat">
+            <div><b>${(me.posts||[]).length}</b><span>депеш</span></div>
+            <div><b>#${me.id}</b><span>id</span></div>
+          </div>
+        </div>
+        <div>
+          <div class="panel-box">
+            <h3>Учётные данные</h3>
+            <form id="profileForm">
+              <div class="row2">
+                <div class="field">
+                  <label for="pf_username">Имя пользователя</label>
+                  <input type="text" id="pf_username" minlength="3" maxlength="50" value="${esc(me.username)}" />
+                </div>
+                <div class="field">
+                  <label for="pf_avatar">Ссылка на аватар</label>
+                  <input type="text" id="pf_avatar" maxlength="200" placeholder="static/images/…" value="${me.avatar && me.avatar!=='default_avatar.png' ? esc(me.avatar) : ''}" />
+                </div>
+              </div>
+              <div class="field">
+                <label for="pf_about">О себе</label>
+                <textarea id="pf_about" maxlength="500" style="min-height:70px;">${esc(me.about_me || "")}</textarea>
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label for="pf_password">Новый пароль (необязательно)</label>
+                <input type="password" id="pf_password" minlength="8" placeholder="оставьте пустым, чтобы не менять" />
+              </div>
+              <div class="compose-actions">
+                <button type="submit" class="btn btn-primary" id="pf_submit">Сохранить изменения</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    `;
+
+    $("#profileForm").addEventListener("submit", async (e)=>{
+      e.preventDefault();
+      const btn = $("#pf_submit");
+      setBusy(btn, true, "Сохранение…", "Сохранить изменения");
+      try{
+        const payload = {
+          username: $("#pf_username").value.trim() || null,
+          about_me: $("#pf_about").value.trim(),
+          avatar: $("#pf_avatar").value.trim() || null,
+        };
+        const pwd = $("#pf_password").value;
+        if(pwd) payload.password = pwd;
+        await api("/api/users/update", { method:"PATCH", body: payload });
+        toast("Профиль обновлён", "ok");
+        $("#pf_password").value = "";
+        setView("profile", true);
+      }catch(err){
+        toast(err.message || "Не удалось сохранить", "err");
+      }finally{
+        setBusy(btn, false, "Сохранение…", "Сохранить изменения");
+      }
+    });
+  }
+
+  /* ===================== INIT ===================== */
+  pingApi();
+  setInterval(pingApi, 15000);
+})();
+</script>
+</body>
+</html>
